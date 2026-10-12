@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { EmptySearchArt } from "@/components/icons";
-import { fmtDate, PageHeader, StatusText } from "@/components/ui";
+import { LocalTime } from "@/components/LocalTime";
+import { PageHeader, StatusText } from "@/components/ui";
 import { q } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -60,7 +61,7 @@ export default async function Archive({ searchParams }: { searchParams: Promise<
           {rows.map((r) => (
             <li key={r.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 first:pt-0 last:pb-0">
               <Link href={r.status === "ready" ? `/briefs/${r.id}` : `/runs/${r.id}`} className="figures min-w-40 flex-1 text-sm font-medium hover:underline">
-                Week of {fmtDate(r.started_at)}
+                Week of <LocalTime value={r.started_at} />
               </Link>
               <span className="text-xs text-muted">
                 {r.featured} papers · {r.domains} domains{r.read_minutes ? ` · ${r.read_minutes} min read` : ""}

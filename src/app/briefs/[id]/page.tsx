@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { IconDownload } from "@/components/icons";
 import { RatingButtons } from "@/components/RatingButtons";
 import { CoverageDonut, ScoreBars } from "@/components/RightRail";
-import { fmtDate, VERDICT_STYLE } from "@/components/ui";
+import { LocalTime } from "@/components/LocalTime";
+import { VERDICT_STYLE } from "@/components/ui";
 import { loadBrief, type Card } from "@/lib/brief";
 import { SOURCE_LABEL } from "@/lib/types";
 
@@ -18,7 +19,7 @@ function PaperCard({ c }: { c: Card }) {
         <span>{SOURCE_LABEL[c.source]}</span>
         {c.source === "arxiv" && <span>Preprint, not yet peer-reviewed</span>}
         <span className="tabular-nums">Score {c.final_score.toFixed(1)}</span>
-        {c.published_at && <span>{fmtDate(c.published_at)}</span>}
+        {c.published_at && <LocalTime value={c.published_at} />}
       </div>
       <h3 id={`t-${c.item_id}`} className="mt-2 text-base font-semibold leading-snug">
         <a href={c.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
@@ -95,7 +96,9 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
       <div className="min-w-0 flex-1">
         <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm text-muted">Week of {fmtDate(run.started_at)}</p>
+            <p className="text-sm text-muted">
+              Week of <LocalTime value={run.started_at} />
+            </p>
             <h1 className="mt-1 text-2xl font-semibold">Research brief</h1>
             <p className="mt-2 text-sm">
               <span className="text-2xl font-light tabular-nums">{run.read_minutes ?? "–"}</span>{" "}

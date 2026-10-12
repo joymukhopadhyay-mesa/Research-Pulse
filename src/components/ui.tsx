@@ -57,7 +57,7 @@ export function fmtDate(d: string | Date | null | undefined, withTime = false) {
   });
 }
 
-export function PageHeader({ title, sub, children }: { title: string; sub?: string; children?: React.ReactNode }) {
+export function PageHeader({ title, sub, children }: { title: string; sub?: React.ReactNode; children?: React.ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>

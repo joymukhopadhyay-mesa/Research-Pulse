@@ -2,8 +2,9 @@ import Link from "next/link";
 import { HowItWorks } from "@/components/HowItWorks";
 import { DuoClock, DuoDocs, DuoDomains, DuoStar, EmptySearchArt, IconTags } from "@/components/icons";
 import { KeywordForm } from "@/components/KeywordForm";
+import { LocalTime } from "@/components/LocalTime";
 import { CoverageDonut, ProfileCard, ScoreBars } from "@/components/RightRail";
-import { fmtDate, PageHeader, StatCard, StatusText } from "@/components/ui";
+import { PageHeader, StatCard, StatusText } from "@/components/ui";
 import { one, q } from "@/lib/db";
 import { rubricGuide, type RubricGuide } from "@/lib/rubric";
 import type { Topic } from "@/lib/types";
@@ -60,7 +61,15 @@ export default async function Overview() {
       <div className="min-w-0 flex-1">
         <PageHeader
           title="Overview"
-          sub={latest ? `Latest brief: ${fmtDate(latest.started_at, true)}` : "No briefs yet. Enter your keywords to run the first one."}
+          sub={
+            latest ? (
+              <>
+                Latest brief: <LocalTime value={latest.started_at} withTime />
+              </>
+            ) : (
+              "No briefs yet. Enter your keywords to run the first one."
+            )
+          }
         >
           <div className="flex flex-wrap gap-2">
             {guide && <HowItWorks guide={guide} />}
@@ -119,7 +128,9 @@ export default async function Overview() {
                     href={r.status === "ready" ? `/briefs/${r.id}` : `/runs/${r.id}`}
                     className="lift -mx-3 flex items-center gap-4 rounded-xl border border-transparent px-3 py-3 hover:border-line hover:bg-white/[0.03]"
                   >
-                    <span className="figures flex-1 text-sm">{fmtDate(r.started_at, true)}</span>
+                    <span className="flex-1 text-sm">
+                      <LocalTime value={r.started_at} withTime />
+                    </span>
                     <span className="figures text-xs text-muted">{r.read_minutes ? `${r.read_minutes} min read` : ""}</span>
                     <StatusText status={r.status} />
                   </Link>

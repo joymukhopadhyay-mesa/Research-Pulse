@@ -1,5 +1,5 @@
 import { one, q } from "../db";
-import { chatJson } from "../gemini";
+import { chatJson, GeminiError } from "../gemini";
 import { SCORING_SCHEMA, scoringPrompt, type ScoreResult } from "../prompts";
 import { finalScore, rubricParams } from "../rubric";
 import { domainsOf, getRun, logRun, patchProgress, setStatus } from "../runs";
@@ -99,6 +99,11 @@ export async function scoreStep(runId: string) {
       );
     } catch (e) {
       await q(`update papers set claimed_at = null where id = any($1::uuid[])`, [batch.map((b) => b.id)]);
+      // A slow batch is released for another try rather than failing the run.
+      if (e instanceof GeminiError && e.timedOut) {
+        const c = await counts(runId);
+        return { ...c, remaining: c.total - c.done, claimed: 0, timedOut: true };
+      }
       throw e;
     }
   }

@@ -139,17 +139,24 @@ export function RunDriver({ runId }: { runId: string }) {
       }
 
       if (s.run.step === "fetch" || s.run.step === "score") {
-        // Three workers score batches of 10 in parallel; the server hands each a different batch.
+        // Two workers score batches of 10 in parallel; the server hands each a different batch.
+        // More parallel calls slow Gemini down enough to push batches past a 60 s function limit.
         const worker = async () => {
+          let timeouts = 0;
           for (;;) {
             const r = await call(`${base}/score`);
             refresh();
             if (r.remaining <= 0) return;
+            if (r.timedOut) {
+              if (++timeouts >= 3) throw new Error("Gemini timed out on three scoring batches in a row. Retry in a minute.");
+              continue;
+            }
+            timeouts = 0;
             // Every unscored batch is held by another worker: wait instead of spinning.
             if (r.claimed === 0) await sleep(4000);
           }
         };
-        await Promise.all([worker(), worker(), worker()]);
+        await Promise.all([worker(), worker()]);
         s = await refresh();
       }
 

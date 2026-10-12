@@ -22,10 +22,12 @@ type ChatOptions = {
   temperature?: number;
   /** Reasoning effort; scoring and writing are rubric-following tasks and run fastest at "low". */
   reasoning?: "minimal" | "low" | "medium" | "high";
+  /** Overall deadline including retries, so a call always ends inside a short function limit. */
+  timeoutMs?: number;
 };
 
 export class GeminiError extends Error {
-  constructor(message: string, public status?: number) {
+  constructor(message: string, public status?: number, public timedOut = false) {
     super(message);
   }
 }
@@ -57,18 +59,33 @@ export async function chat(opts: ChatOptions): Promise<ChatResult> {
     body.plugins = [{ id: "web", engine: "native" }];
   }
 
+  const timeoutMs = opts.timeoutMs ?? 50_000;
+  const deadline = Date.now() + timeoutMs;
   let lastErr: unknown;
   for (let attempt = 0; attempt < 4; attempt++) {
-    if (attempt > 0) await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
-    const res = await fetch(BASE_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        "X-Title": "Research Pulse",
-      },
-      body: JSON.stringify(body),
-    });
+    if (attempt > 0) {
+      const wait = 1000 * 2 ** attempt;
+      if (Date.now() + wait + 5000 > deadline) break;
+      await new Promise((r) => setTimeout(r, wait));
+    }
+    let res: Response;
+    try {
+      res = await fetch(BASE_URL, {
+        signal: AbortSignal.timeout(Math.max(1000, deadline - Date.now())),
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "X-Title": "Research Pulse",
+        },
+        body: JSON.stringify(body),
+      });
+    } catch (e) {
+      if ((e as Error).name === "TimeoutError" || (e as Error).name === "AbortError") {
+        throw new GeminiError(`Gemini did not answer within ${Math.round(timeoutMs / 1000)} seconds.`, undefined, true);
+      }
+      throw e;
+    }
     if (res.status === 402) throw new GeminiError("OpenRouter is out of credits (402). Top up, then retry this step.", 402);
     if (res.status === 429 || res.status >= 500) {
       lastErr = new GeminiError(`OpenRouter returned ${res.status}.`, res.status);

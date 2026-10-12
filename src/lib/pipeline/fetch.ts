@@ -68,9 +68,24 @@ export async function fetchStep(runId: string, source: Source, domainName: strin
         state.status = "skipped";
         state.error = "APIFY_TOKEN is not set, so Google Scholar was skipped.";
       } else if (!state.apify_run_id) {
-        state.apify_run_id = await startScholarRun(domain);
-        state.started_at = new Date().toISOString();
-        state.status = "running";
+        try {
+          state.apify_run_id = await startScholarRun(domain);
+          state.started_at = new Date().toISOString();
+          state.status = "running";
+          delete state.error;
+        } catch (e) {
+          // Apify's free plan runs 5 actors at once; a sixth domain waits for a slot within the same 90 s window.
+          if (!/concurrent/i.test((e as Error).message)) throw e;
+          state.queued_at ??= new Date().toISOString();
+          if (Date.now() - Date.parse(state.queued_at) > SCHOLAR_TIMEOUT_MS) {
+            state.status = "timed_out";
+            state.error = "Google Scholar had no free Apify run slot within 90 seconds.";
+            await logRun(runId, `Google Scholar timed out for ${domainName}. The brief was built from the other sources.`);
+          } else {
+            state.status = "pending";
+            state.error = "Waiting for a free Apify run slot (the free plan allows 5 at once).";
+          }
+        }
       } else {
         const elapsed = Date.now() - Date.parse(state.started_at ?? run.started_at);
         const poll = await pollScholarRun(state.apify_run_id);

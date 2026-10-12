@@ -27,6 +27,7 @@ export type FetchState = {
   error?: string;
   apify_run_id?: string;
   started_at?: string;
+  queued_at?: string;
 };
 
 export type RunProgress = {

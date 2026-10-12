@@ -4,6 +4,9 @@ A weekly AI and ML research brief for Kavita, a senior consultant in a technolog
 
 Nothing runs on a schedule. There is no cron job; a brief is built only when Kavita clicks Run.
 
+- **Live app:** https://research-pulse-nine.vercel.app
+- **Code:** https://github.com/joymukhopadhyay-mesa/Research-Pulse
+
 ## How it works
 
 ```

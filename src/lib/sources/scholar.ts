@@ -58,13 +58,23 @@ function toPaper(it: ScholarItem): RawPaper | null {
         .map((s) => s.trim())
         .filter(Boolean);
   const year = Number(it.year ?? it.publicationYear);
+  // With date sorting, Scholar prefixes the snippet with its age ("2 days ago - …"): an exact date for G3.
+  let snippet = str(it.searchMatch) || str(it.snippet) || str(it.description);
+  let published: string | null = Number.isFinite(year) && year > 1900 ? new Date(Date.UTC(year, 0, 1)).toISOString() : null;
+  const age = snippet.match(/^(\d+)\s+(day|hour|minute)s?\s+ago\s*[-–—]\s*/i);
+  if (age) {
+    const unitMs = { day: 864e5, hour: 36e5, minute: 6e4 }[age[2].toLowerCase() as "day" | "hour" | "minute"];
+    published = new Date(Date.now() - Number(age[1]) * unitMs).toISOString();
+    snippet = snippet.slice(age[0].length);
+  }
   return {
     external_id: url,
     title,
-    abstract: str(it.searchMatch) || str(it.snippet) || str(it.description) || null,
+    abstract: snippet.replace(/^…\s*/, "") || null,
     url,
     authors,
-    published_at: Number.isFinite(year) && year > 1900 ? new Date(Date.UTC(year, 0, 1)).toISOString() : null,
+    published_at: published,
+    date_precision: age ? "day" : "year",
     arxiv_id: null,
     doi: null,
   };

@@ -10,6 +10,8 @@ export type RawPaper = {
   published_at: string | null;
   arxiv_id?: string | null;
   doi?: string | null;
+  /** "year" when the source gives only a publication year (Google Scholar without an age prefix). */
+  date_precision?: "day" | "year";
 };
 
 const ENDPOINT = "http://export.arxiv.org/api/query";

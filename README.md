@@ -70,7 +70,7 @@ Every step is idempotent. A finished source and domain pair returns its stored r
 
 - **Must-see papers (S5)** are picked first. They bypass both the 7.0 bar and the per-domain cap, and they don't use up a cap slot. They still count toward the total of 12.
 - **S8 home domain.** Gemini returns Kavita's domains ordered from most to least client-relevant. A paper sits under the first of those that she monitors.
-- **Google Scholar dates.** The actor returns a year only. Its date sort lists recent additions, so items from this year and last year are kept.
+- **Google Scholar dates.** With date sorting, Scholar prefixes each snippet with its age ("2 days ago"), which becomes an exact date for the 7-day rule. Items without that prefix carry only a year, so items from this year and last year are kept.
 - **Links.** Every link comes from an API response. Gemini never writes a URL. Every arXiv ID is confirmed against a live arXiv lookup before it reaches the page, and every arXiv card carries "Preprint, not yet peer-reviewed".
 
 ## Setup
@@ -81,6 +81,8 @@ Every step is idempotent. A finished source and domain pair returns its stored r
    ```
 2. **Database.** Create a Neon project and run `db/schema.sql` in its SQL editor. The script also seeds six starting domains, which you can edit on the Topics page.
 3. **Environment.** Copy `.env.example` to `.env.local` and fill it in.
+   - **Google Scholar:** the Apify actor needs full account access. Approve it once in the Apify console, or runs return 403. The run page shows the reason.
+   - **Email:** Resend's testing sender (`onboarding@resend.dev`) only delivers to your Resend account's own address. To send anywhere else, verify a domain at resend.com/domains and set `RESEND_FROM` to an address on it.
 4. **Run**
    ```bash
    npm run dev

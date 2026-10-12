@@ -18,8 +18,8 @@ async function store(runId: string, source: Source, domain: string, papers: RawP
   state.fetched = papers.length;
   for (const p of papers) {
     const tooOld =
-      source === "google_scholar"
-        ? // Scholar gives a year only; its date sort lists recent additions, so keep this year and last.
+      p.date_precision === "year"
+        ? // Year-only dates (some Scholar items) cannot be checked to the day: keep this year and last.
           p.published_at !== null && new Date(p.published_at).getUTCFullYear() < since.getUTCFullYear() - 1
         : !p.published_at || new Date(p.published_at) < since;
     if (tooOld) {

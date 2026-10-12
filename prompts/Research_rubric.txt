@@ -1,0 +1,247 @@
+RESEARCH PULSE - SCORING RUBRIC
+Version 1.0
+Owner: [YOUR NAME] (rubric owner, reviews monthly)
+Used by: Gemini Flash (scoring pass and writing pass) and the app's selection code
+
+==================================================================
+0. PURPOSE
+==================================================================
+
+Kavita is a senior AI strategy consultant. Each Monday she gets one
+brief covering her chosen research domains. Her clients ask three
+questions:
+
+  Q1. Which architectures should we bet on?
+  Q2. Which use cases have real research backing?
+  Q3. Which direction is the field moving?
+
+She cares about what is published and validated, not press coverage.
+Her biggest risk is MISSING something important, especially in domains
+she checks less carefully. The brief must be readable in under 10
+minutes.
+
+This rubric decides which papers make the brief and why.
+
+Processing order:
+  Layer 1  Gate       -> drop papers that clearly do not belong
+  Layer 2  Score      -> Gemini scores each remaining paper
+  Layer 3  Select     -> code picks the papers for the brief
+  Layer 4  Write      -> Gemini writes a card for each selected paper
+
+==================================================================
+1. LAYER 1 - GATE (pass / fail)
+==================================================================
+
+A paper is DROPPED only if it clearly fails one of these:
+
+  G1. ON-DOMAIN: The paper's main contribution belongs to one of
+      Kavita's domains. A passing mention of a keyword does not count.
+  G2. REAL RESEARCH: Not an erratum, duplicate version, withdrawn
+      paper, course note or table of contents.
+  G3. NEW: Published in the last 7 days and not in a previous brief.
+      (G3 is checked by code, not by Gemini.)
+
+RULE: If unsure whether a paper passes the gate, it PASSES.
+When in doubt, keep it.
+
+==================================================================
+2. LAYER 2 - SCORING (Gemini Flash)
+==================================================================
+
+Score each paper on four dimensions, 0 to 3, using ONLY its title and
+abstract. Use the definitions below exactly. Do not reward
+enthusiastic wording; reward evidence.
+
+------------------------------------------------------------------
+A. SHIFT SIGNAL                                       weight x3
+   Does this paper change what people know or how they think?
+------------------------------------------------------------------
+  0 = Incremental tweak (e.g. small gain on a single benchmark)
+  1 = Solid improvement, nothing surprising
+  2 = One clear shift:
+        - introduces a NEW BENCHMARK or dataset, OR
+        - reports a SURPRISING EVALUATION RESULT (including negative
+          results or findings that contradict common belief), OR
+        - REFRAMES how a problem is defined or approached
+  3 = A strong shift, or more than one shift at once
+
+------------------------------------------------------------------
+B. CLIENT RELEVANCE                                   weight x2
+   Does it help answer Q1, Q2 or Q3?
+------------------------------------------------------------------
+  0 = Answers none of the three questions
+  1 = Loosely connected to one question
+  2 = Clearly informs one question
+  3 = Could change what Kavita recommends to a client
+
+------------------------------------------------------------------
+C. EVIDENCE STRENGTH                                  weight x2
+   Is the claim validated, or only stated?
+------------------------------------------------------------------
+  0 = Claims with no evaluation
+  1 = One benchmark, few or weak baselines
+  2 = Several benchmarks, strong baselines, ablations
+  3 = All of the above PLUS released code/data OR real-world
+      deployment results
+
+------------------------------------------------------------------
+D. PRACTICAL MATURITY                                 weight x1
+   Can a client act on this?
+------------------------------------------------------------------
+  0 = Purely theoretical, years from use
+  1 = Promising, early stage
+  2 = Usable with significant effort
+  3 = Usable now
+
+------------------------------------------------------------------
+FINAL SCORE
+------------------------------------------------------------------
+  raw   = (A x 3) + (B x 2) + (C x 2) + (D x 1)      max 24
+  score = round(raw / 24 x 10, 1)                    0.0 to 10.0
+
+  The score is calculated by CODE, not by Gemini. Gemini returns only
+  the four dimension scores.
+
+------------------------------------------------------------------
+SCORING RULES FOR GEMINI
+------------------------------------------------------------------
+  R1. PROOF: For every dimension scored 2 or 3, quote a short phrase
+      (under 15 words) from the abstract that justifies it. If no
+      phrase supports the score, lower it to 1.
+  R2. UNCERTAIN: If the abstract is too vague to judge, set
+      "uncertain": true. Do not guess high or low.
+  R3. NO FAME BONUS: Do not raise scores because of the authors'
+      lab, company or reputation.
+  R4. NO HYPE BONUS: Words like "revolutionary", "breakthrough" or
+      "state-of-the-art" earn nothing without numbers behind them.
+  R5. PREPRINT: Assume arXiv papers are not peer-reviewed unless the
+      abstract states acceptance at a named venue.
+  R6. CLIENT QUESTION: Name which of Q1, Q2, Q3 the paper informs
+      (one or more), or "none".
+
+------------------------------------------------------------------
+SCORING OUTPUT FORMAT (JSON only, no other text)
+------------------------------------------------------------------
+{
+  "paper_id": "string",
+  "gate_pass": true,
+  "gate_reason": "string, only if gate_pass is false",
+  "domains": ["string"],
+  "shift": 0,
+  "shift_type": ["new_benchmark" | "surprising_result" | "reframing"],
+  "client_relevance": 0,
+  "client_questions": ["Q1" | "Q2" | "Q3"],
+  "evidence": 0,
+  "maturity": 0,
+  "proof": {
+    "shift": "short quote or empty",
+    "client_relevance": "short quote or empty",
+    "evidence": "short quote or empty",
+    "maturity": "short quote or empty"
+  },
+  "uncertain": false,
+  "one_line_reason": "why this paper matters, max 20 words"
+}
+
+==================================================================
+3. LAYER 3 - SELECTION (app code)
+==================================================================
+
+  S1. BAR: Papers scoring 7.0 or higher qualify.
+
+  S2. DOMAIN FLOOR: Every domain gets at least 1 slot if any paper in
+      it scores 5.0 or higher. This stops quiet domains from being
+      ignored.
+
+  S3. QUIET WEEK NOTICE: If no paper in a domain scores 5.0 or higher,
+      print instead:
+        "[Domain]: [N] papers scanned, nothing above the bar this week."
+
+  S4. CAPS: Maximum 3 papers per domain. Maximum 12 papers in total.
+
+  S5. MUST-SEE OVERRIDE: A paper with shift = 3 AND evidence >= 2 is
+      included even if its domain is already at the cap. It still
+      counts toward the total of 12.
+
+  S6. TIE-BREAK ORDER: higher score -> higher shift -> higher evidence
+      -> earlier publication date.
+
+  S7. RUNNER-UPS: The next 2 highest papers per domain, plus every
+      paper marked "uncertain" with score >= 5.0, go to the appendix
+      as title + link only.
+
+  S8. NO DUPLICATES: A paper matching several domains appears once,
+      tagged with all its domains, under the domain where it scored
+      the highest client relevance.
+
+  S9. COVERAGE LOG: For every domain, record the number of papers
+      scanned, gated out, scored and selected. Show the totals in the
+      brief's appendix.
+
+==================================================================
+4. LAYER 4 - WRITING THE CARDS (Gemini Flash)
+==================================================================
+
+Write one card per selected paper. Maximum 120 words per card.
+Plain, direct language. No hype.
+
+  WHAT'S NEW      One sentence on the core contribution.
+  WHY IT MATTERS  Which shift it shows and why it is significant.
+  CLIENT ANGLE    Which client question (Q1/Q2/Q3) it informs and how.
+  EVIDENCE        How strong the evidence is. Say "Preprint, not yet
+                  peer-reviewed" where it applies.
+  VERDICT         Exactly one of:
+                    READ IN FULL      - likely to change her view
+                    FLAG FOR A CLIENT - directly useful in a client
+                                        conversation
+                    KNOW IT EXISTS    - worth being aware of
+  LINK            The paper's original URL, taken from the source
+                  data. Never write or invent a link.
+
+==================================================================
+5. IN THE NEWS SECTION (Gemini Flash with Google Search grounding)
+==================================================================
+
+  N1. News is NOT scored with this rubric and never raises a paper's
+      score.
+  N2. 3 to 5 items, maximum 40 words each, across all domains.
+  N3. Use only URLs returned by the search grounding. Never write a
+      link from memory.
+  N4. If a news item is about a paper already in the brief, link the
+      two with a note: "Covered above in [Domain]."
+
+==================================================================
+6. READ-TIME BUDGET
+==================================================================
+
+  Reading speed assumed: 200 words per minute
+  Hard limit: 2,000 words (10 minutes)
+  Target: 1,600 to 1,800 words (8 to 9 minutes)
+
+    Paper cards     up to 12 x 120 words  = 1,440
+    News section    up to 5 x 40 words    =   200
+    Headers, quiet-week notes             =   150
+
+  Read time shown at the top of the brief and PDF:
+    read_minutes = ceil(word_count / 200)
+
+  If over 2,000 words: drop the lowest-scored non-must-see paper and
+  move it to runner-ups. Repeat until under the limit.
+  The appendix (links and coverage log) is not counted.
+
+==================================================================
+7. FEEDBACK AND TUNING
+==================================================================
+
+  F1. Kavita rates each card "useful" or "not useful". Store the
+      rating with the paper's four dimension scores.
+  F2. Once a month, the rubric owner reviews the ratings. Example: if
+      high-maturity papers are often "not useful", lower the maturity
+      weight.
+  F3. Change one weight at a time. Record each change below.
+
+------------------------------------------------------------------
+CHANGE LOG
+------------------------------------------------------------------
+  v1.0  [DATE]  Initial rubric. Weights: shift x3, client relevance
+                x2, evidence x2, maturity x1. Bar 7.0, floor 5.0.

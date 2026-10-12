@@ -12,6 +12,12 @@ type State = { run: Run; counts: Counts };
 const FETCH_ORDER = ["arxiv", "semantic_scholar"] as const;
 const FINAL = ["done", "failed", "timed_out", "skipped"];
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const LEFT_PAGE = "left-page";
+const rethrowIfLeft = (e: Error) => {
+  // A source that fails is recorded server-side; only leaving the page stops the loop.
+  if (e.message === LEFT_PAGE) throw e;
+  return null;
+};
 
 async function post(url: string, body?: unknown) {
   const res = await fetch(url, {
@@ -81,6 +87,7 @@ export function RunDriver({ runId }: { runId: string }) {
   const [driving, setDriving] = useState(false);
   const [toast, setToast] = useState(false);
   const drivingRef = useRef(false);
+  const aliveRef = useRef(true);
 
   const refresh = useCallback(async () => {
     const res = await fetch(`/api/runs/${runId}`, { cache: "no-store" });
@@ -95,6 +102,12 @@ export function RunDriver({ runId }: { runId: string }) {
     drivingRef.current = true;
     setDriving(true);
     setError(null);
+    // Every request goes through call(), which stops the loop once the page is left,
+    // so a second visit never races an orphaned loop from the first.
+    const call = (url: string, body?: unknown) => {
+      if (!aliveRef.current) throw new Error(LEFT_PAGE);
+      return post(url, body);
+    };
     try {
       let s = await refresh();
       if (s.run.status === "failed") {
@@ -106,11 +119,11 @@ export function RunDriver({ runId }: { runId: string }) {
       if (s.run.step === "fetch") {
         const domains = s.run.domains.map((d) => d.name);
         // Start Scholar first: it runs on Apify while the fast sources are fetched.
-        for (const d of domains) await post(`${base}/fetch`, { source: "google_scholar", domain: d }).catch(() => null);
+        for (const d of domains) await call(`${base}/fetch`, { source: "google_scholar", domain: d }).catch(rethrowIfLeft);
         refresh();
         for (const d of domains) {
           for (const source of FETCH_ORDER) {
-            await post(`${base}/fetch`, { source, domain: d }).catch(() => null);
+            await call(`${base}/fetch`, { source, domain: d }).catch(rethrowIfLeft);
             refresh();
           }
         }
@@ -119,7 +132,7 @@ export function RunDriver({ runId }: { runId: string }) {
           s = await refresh();
           const pending = domains.filter((d) => !FINAL.includes(s.run.progress.fetch?.google_scholar?.[d]?.status ?? "pending"));
           if (!pending.length) break;
-          for (const d of pending) await post(`${base}/fetch`, { source: "google_scholar", domain: d }).catch(() => null);
+          for (const d of pending) await call(`${base}/fetch`, { source: "google_scholar", domain: d }).catch(rethrowIfLeft);
           await sleep(5000);
         }
         s = await refresh();
@@ -129,24 +142,29 @@ export function RunDriver({ runId }: { runId: string }) {
         // Three workers score batches of 10 in parallel; the server hands each a different batch.
         const worker = async () => {
           for (;;) {
-            const r = await post(`${base}/score`);
+            const r = await call(`${base}/score`);
             refresh();
             if (r.remaining <= 0) return;
+            // Every unscored batch is held by another worker: wait instead of spinning.
+            if (r.claimed === 0) await sleep(4000);
           }
         };
         await Promise.all([worker(), worker(), worker()]);
-        await post(`${base}/select`);
         s = await refresh();
       }
 
-      if (s.run.step === "select") {
-        await post(`${base}/select`);
+      if (s.run.step === "score" || s.run.step === "select") {
+        for (let i = 0; i < 20; i++) {
+          const r = await call(`${base}/select`);
+          if (!r.busy) break;
+          await sleep(3000);
+        }
         s = await refresh();
       }
 
       if (s.run.step === "write") {
         for (let i = 0; i < 30; i++) {
-          const r = await post(`${base}/write`);
+          const r = await call(`${base}/write`);
           refresh();
           if (r.finished) break;
         }
@@ -154,25 +172,30 @@ export function RunDriver({ runId }: { runId: string }) {
       }
 
       if (s.run.step === "deliver") {
-        await post(`${base}/deliver`);
+        await call(`${base}/deliver`);
         s = await refresh();
       }
       if (s.run.step === "done") setToast(true);
     } catch (e) {
+      if ((e as Error).message === LEFT_PAGE) return;
       setError((e as Error).message);
       await refresh().catch(() => null);
     } finally {
       drivingRef.current = false;
-      setDriving(false);
+      if (aliveRef.current) setDriving(false);
     }
   }, [runId, refresh]);
 
   useEffect(() => {
+    aliveRef.current = true;
     refresh()
       .then((s) => {
         if (s.run.step !== "done" && s.run.status !== "failed") drive();
       })
       .catch((e) => setError(e.message));
+    return () => {
+      aliveRef.current = false;
+    };
   }, [refresh, drive]);
 
   if (!data) {
@@ -184,6 +207,7 @@ export function RunDriver({ runId }: { runId: string }) {
   const scholarStates = Object.values(run.progress.fetch?.google_scholar ?? {});
   const scholarTimedOut = scholarStates.some((x) => x.status === "timed_out");
   const scholarSkipped = scholarStates.length > 0 && scholarStates.every((x) => x.status === "skipped");
+  const scholarFailed = scholarStates.length > 0 && scholarStates.every((x) => x.status === "failed");
 
   return (
     <div className="max-w-4xl">
@@ -217,6 +241,11 @@ export function RunDriver({ runId }: { runId: string }) {
 
       {scholarTimedOut && (
         <p className="mb-4 text-sm text-warn">Google Scholar timed out. The brief was built from the other sources.</p>
+      )}
+      {scholarFailed && (
+        <p className="mb-4 text-sm text-warn">
+          Google Scholar failed, so the brief was built from the other sources. {scholarStates[0]?.error}
+        </p>
       )}
       {scholarSkipped && (
         <p className="mb-4 text-sm text-warn">Google Scholar was skipped: {scholarStates[0]?.error}</p>

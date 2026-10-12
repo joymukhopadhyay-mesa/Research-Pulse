@@ -17,6 +17,12 @@ export async function q<T = Record<string, unknown>>(text: string, params: unkno
   return rows as T[];
 }
 
+/** Runs several statements atomically (one Neon HTTP transaction). */
+export async function tx(statements: [string, unknown[]][]): Promise<void> {
+  const c = getClient();
+  await c.transaction(statements.map(([text, params]) => c.query(text, params)));
+}
+
 export async function one<T = Record<string, unknown>>(text: string, params: unknown[] = []): Promise<T | null> {
   const rows = await q<T>(text, params);
   return rows[0] ?? null;

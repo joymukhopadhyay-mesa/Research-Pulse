@@ -64,7 +64,7 @@ export async function scoreStep(runId: string) {
           abstract: b.abstract || "(no abstract available)",
         })),
       );
-      const out = await chatJson<{ results: ScoreResult[] }>({ system, user, schema: SCORING_SCHEMA });
+      const out = await chatJson<{ results: ScoreResult[] }>({ system, user, schema: SCORING_SCHEMA, reasoning: "low" });
       const ids = new Set(batch.map((b) => b.id));
       for (const r of out.results ?? []) {
         if (!ids.has(r.paper_id)) continue;
@@ -105,5 +105,5 @@ export async function scoreStep(runId: string) {
 
   const c = await counts(runId);
   await patchProgress(runId, "score", c);
-  return { ...c, remaining: c.total - c.done };
+  return { ...c, remaining: c.total - c.done, claimed: batch.length };
 }

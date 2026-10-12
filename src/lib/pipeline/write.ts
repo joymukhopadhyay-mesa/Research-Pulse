@@ -76,7 +76,7 @@ async function writeCards(runId: string): Promise<number> {
       },
     })),
   );
-  const out = await chatJson<{ cards: CardResult[] }>({ system, user, schema: WRITING_SCHEMA, temperature: 0.3 });
+  const out = await chatJson<{ cards: CardResult[] }>({ system, user, schema: WRITING_SCHEMA, temperature: 0.3, reasoning: "low" });
   const bySource = new Map(items.map((i) => [i.item_id, i.source]));
   for (const c of out.cards ?? []) {
     if (!bySource.has(c.brief_item_id)) continue;
@@ -109,7 +109,7 @@ async function writeNews(runId: string): Promise<WriteState["news"]> {
   const run = (await getRun(runId))!;
   await q("delete from news_items where run_id = $1", [runId]);
   const since = new Date(Date.parse(run.started_at) - 7 * 864e5).toISOString().slice(0, 10);
-  const grounded = await chat({ user: newsSearchPrompt(domainsOf(run), since), webSearch: true, temperature: 0.2 });
+  const grounded = await chat({ user: newsSearchPrompt(domainsOf(run), since), webSearch: true, temperature: 0.2, reasoning: "low" });
 
   const seen = new Set<string>();
   const results: UrlCitation[] = [];
@@ -146,7 +146,7 @@ async function writeNews(runId: string): Promise<WriteState["news"]> {
   );
   const out = await chatJson<{
     items: { source_index: number; headline: string; summary: string; related_paper_id: string }[];
-  }>({ system, user, schema: NEWS_SCHEMA });
+  }>({ system, user, schema: NEWS_SCHEMA, reasoning: "low" });
 
   const paperIds = new Set(papers.map((p) => p.paper_id));
   const used = new Set<number>();
@@ -218,7 +218,15 @@ export async function writeStep(runId: string) {
     return { ...state, finished: false };
   }
 
+  if (state.news === "running") return { ...state, finished: false };
   if (state.news === "pending" || state.news === "failed") {
+    // Claim the news call so a second open tab cannot run it in parallel and double the items.
+    const claimed = await one(
+      `update runs set progress = jsonb_set(progress, '{write,news}', '"running"')
+        where id = $1 and coalesce(progress->'write'->>'news', 'pending') in ('pending', 'failed') returning id`,
+      [runId],
+    );
+    if (!claimed) return { ...state, finished: false };
     try {
       state.news = await writeNews(runId);
     } catch (e) {

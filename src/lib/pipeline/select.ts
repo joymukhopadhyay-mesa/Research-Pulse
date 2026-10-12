@@ -1,4 +1,4 @@
-import { q } from "../db";
+import { one, q, tx } from "../db";
 import { rubricParams } from "../rubric";
 import { domainsOf, getRun, patchProgress, setStatus, stepIndex } from "../runs";
 import { selectPapers, type Candidate } from "../selection";
@@ -7,6 +7,14 @@ export async function selectStep(runId: string) {
   const run = await getRun(runId);
   if (!run) throw new Error("Run not found.");
   if (stepIndex(run.step) > stepIndex("select")) return run.progress.select;
+
+  // Claim the step so two overlapping calls cannot both write the brief.
+  const claimed = await one(
+    `update runs set status = 'selecting', step = 'select'
+      where id = $1 and step in ('fetch','score','select') and status <> 'selecting' returning id`,
+    [runId],
+  );
+  if (!claimed) return { busy: true };
 
   const params = rubricParams();
   const domains = domainsOf(run);
@@ -37,27 +45,27 @@ export async function selectStep(runId: string) {
 
   const sel = selectPapers(candidates, names, params, scanned);
 
-  await q("delete from brief_items where run_id = $1", [runId]);
+  // Brief items and the coverage log are replaced in one transaction.
+  const statements: [string, unknown[]][] = [
+    ["delete from brief_items where run_id = $1", [runId]],
+    ["delete from coverage where run_id = $1", [runId]],
+  ];
   for (const f of sel.featured) {
-    await q(`insert into brief_items (run_id, paper_id, domain, rank, kind) values ($1,$2,$3,$4,'featured')`, [
-      runId,
-      f.paper_id,
-      f.domain,
-      f.rank,
+    statements.push([
+      `insert into brief_items (run_id, paper_id, domain, rank, kind) values ($1,$2,$3,$4,'featured') on conflict do nothing`,
+      [runId, f.paper_id, f.domain, f.rank],
     ]);
   }
   for (const r of sel.runnerUps) {
-    await q(
+    statements.push([
       `insert into brief_items (run_id, paper_id, domain, rank, kind) values ($1,$2,$3,$4,'runner_up') on conflict do nothing`,
       [runId, r.paper_id, r.domain, r.rank],
-    );
+    ]);
   }
-
   // S9 coverage log.
-  await q("delete from coverage where run_id = $1", [runId]);
   for (const d of names) {
     const tagged = rows.filter((r) => (r.fetched_domains ?? []).includes(d));
-    await q(
+    statements.push([
       `insert into coverage (run_id, domain, scanned, gated_out, scored, selected, by_source) values ($1,$2,$3,$4,$5,$6,$7)`,
       [
         runId,
@@ -68,8 +76,9 @@ export async function selectStep(runId: string) {
         sel.featured.filter((f) => f.domain === d).length,
         JSON.stringify(bySource[d] ?? {}),
       ],
-    );
+    ]);
   }
+  await tx(statements);
 
   const summary = { featured: sel.featured.length, runner_up: sel.runnerUps.length, quiet: sel.quiet.map((x) => x.domain) };
   await patchProgress(runId, "select", summary);

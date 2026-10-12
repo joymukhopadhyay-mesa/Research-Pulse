@@ -20,6 +20,8 @@ type ChatOptions = {
   schema?: { name: string; schema: Record<string, unknown> };
   webSearch?: boolean;
   temperature?: number;
+  /** Reasoning effort; scoring and writing are rubric-following tasks and run fastest at "low". */
+  reasoning?: "minimal" | "low" | "medium" | "high";
 };
 
 export class GeminiError extends Error {
@@ -47,6 +49,9 @@ export async function chat(opts: ChatOptions): Promise<ChatResult> {
       type: "json_schema",
       json_schema: { name: opts.schema.name, strict: true, schema: opts.schema.schema },
     };
+  }
+  if (opts.reasoning) {
+    body.reasoning = { effort: opts.reasoning, exclude: true };
   }
   if (opts.webSearch) {
     body.plugins = [{ id: "web", engine: "native" }];

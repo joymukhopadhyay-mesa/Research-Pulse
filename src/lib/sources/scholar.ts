@@ -28,7 +28,11 @@ export async function startScholarRun(d: Domain): Promise<string> {
       enableDebugDumps: false,
     }),
   });
-  if (!res.ok) throw new Error(`Apify returned ${res.status} when starting the Scholar run.`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const reason = body?.error?.message ? `: ${body.error.message}` : ".";
+    throw new Error(`Apify returned ${res.status} when starting the Scholar run${reason}`);
+  }
   const json = await res.json();
   return json.data.id as string;
 }

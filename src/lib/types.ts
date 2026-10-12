@@ -33,7 +33,7 @@ export type RunProgress = {
   fetch?: Record<string, Record<string, FetchState>>; // source -> domain -> state
   score?: { total: number; done: number };
   select?: { featured: number; runner_up: number; quiet: string[] };
-  write?: { total: number; done: number; news: "pending" | "done" | "none" | "failed"; validated: boolean };
+  write?: { total: number; done: number; news: "pending" | "running" | "done" | "none" | "failed"; validated: boolean };
   deliver?: { pdf: boolean; email: "pending" | "sent" | "skipped" | "failed"; email_error?: string };
 };
 

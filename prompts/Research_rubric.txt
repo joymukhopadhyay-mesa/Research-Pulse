@@ -1,6 +1,6 @@
 RESEARCH PULSE - SCORING RUBRIC
 Version 1.0
-Owner: [YOUR NAME] (rubric owner, reviews monthly)
+Owner: Kavita (rubric owner, reviews monthly)
 Used by: Gemini Flash (scoring pass and writing pass) and the app's selection code
 
 ==================================================================
@@ -243,5 +243,5 @@ Plain, direct language. No hype.
 ------------------------------------------------------------------
 CHANGE LOG
 ------------------------------------------------------------------
-  v1.0  [DATE]  Initial rubric. Weights: shift x3, client relevance
-                x2, evidence x2, maturity x1. Bar 7.0, floor 5.0.
+  v1.0  12-10-2026  Initial rubric. Weights: shift x3, client relevance
+                    x2, evidence x2, maturity x1. Bar 7.0, floor 5.0.

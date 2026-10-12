@@ -49,61 +49,64 @@ body {
   border-radius: 6px;
 }
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 20px;
-}
+/* Component classes sit in the components layer so Tailwind utilities can override them. */
+@layer components {
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+  }
 
-.card-hero {
-  background:
-    radial-gradient(120% 140% at 0% 0%, rgba(139, 92, 246, 0.55) 0%, rgba(108, 92, 231, 0.25) 45%, transparent 75%),
-    var(--surface);
-  border: 1px solid rgba(139, 92, 246, 0.35);
-}
+  .card-hero {
+    background:
+      radial-gradient(120% 140% at 0% 0%, rgba(139, 92, 246, 0.55) 0%, rgba(108, 92, 231, 0.25) 45%, transparent 75%),
+      var(--surface);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+  }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: 10px;
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
-}
-.btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-.btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-.btn-primary {
-  background: var(--accent);
-  border-color: transparent;
-}
-.btn-primary:hover {
-  background: #5b4bd6;
-}
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text);
+  }
+  .btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: var(--accent);
+    border-color: transparent;
+  }
+  .btn-primary:hover {
+    background: #5b4bd6;
+  }
 
-.input {
-  width: 100%;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 9px 12px;
-  font-size: 14px;
-  color: var(--text);
-}
-.input::placeholder {
-  color: var(--muted);
-}
+  .input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .input::placeholder {
+    color: var(--muted);
+  }
 
-.prose-card p + p {
-  margin-top: 8px;
+  .prose-card p + p {
+    margin-top: 8px;
+  }
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { HowItWorks } from "@/components/HowItWorks";
-import { IconTags } from "@/components/icons";
+import { DuoClock, DuoDocs, DuoDomains, DuoStar, EmptySearchArt, IconTags } from "@/components/icons";
 import { KeywordForm } from "@/components/KeywordForm";
 import { CoverageDonut, ProfileCard, ScoreBars } from "@/components/RightRail";
 import { fmtDate, PageHeader, StatCard, StatusText } from "@/components/ui";
@@ -68,7 +68,7 @@ export default async function Overview() {
               <IconTags /> Edit domains
             </Link>
             {latest && (
-              <Link href={`/briefs/${latest.id}`} className="btn">
+              <Link href={`/briefs/${latest.id}`} className="btn btn-gradient">
                 Open latest brief
               </Link>
             )}
@@ -76,10 +76,17 @@ export default async function Overview() {
         </PageHeader>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-          <StatCard hero label="Papers scanned" value={latest ? String(scanned) : "–"} hint="Across all sources, last brief" />
-          <StatCard label="Featured papers" value={latest ? String(featured) : "–"} />
-          <StatCard label="Read time" value={latest?.read_minutes ? `${latest.read_minutes} min` : "–"} />
-          <StatCard label="Domains monitored" value={String(active.length)} />
+          <StatCard
+            hero
+            index={0}
+            icon={<DuoDocs />}
+            label="Papers scanned"
+            value={latest ? String(scanned) : "–"}
+            hint="Across all sources, last brief"
+          />
+          <StatCard index={1} icon={<DuoStar />} label="Featured papers" value={latest ? String(featured) : "–"} />
+          <StatCard index={2} icon={<DuoClock />} label="Read time" value={latest?.read_minutes ? `${latest.read_minutes} min` : "–"} />
+          <StatCard index={3} icon={<DuoDomains />} label="Domains monitored" value={String(active.length)} />
         </div>
 
         <section id="new-brief" className="card mt-6 scroll-mt-6" aria-labelledby="new-brief-title">
@@ -100,16 +107,22 @@ export default async function Overview() {
             </Link>
           </div>
           {runs.length === 0 ? (
-            <p className="mt-3 text-sm text-muted">No briefs yet. Enter your keywords to run the first one.</p>
+            <div className="mt-4 flex flex-col items-center py-4 text-center">
+              <EmptySearchArt />
+              <p className="mt-3 text-sm text-muted">No briefs yet. Enter your keywords to run the first one.</p>
+            </div>
           ) : (
-            <ul className="mt-3 divide-y divide-[var(--border)]">
+            <ul className="mt-3 space-y-1">
               {runs.map((r) => (
-                <li key={r.id} className="flex items-center gap-4 py-3">
-                  <Link href={r.status === "ready" ? `/briefs/${r.id}` : `/runs/${r.id}`} className="flex-1 text-sm hover:underline">
-                    {fmtDate(r.started_at, true)}
+                <li key={r.id}>
+                  <Link
+                    href={r.status === "ready" ? `/briefs/${r.id}` : `/runs/${r.id}`}
+                    className="lift -mx-3 flex items-center gap-4 rounded-xl border border-transparent px-3 py-3 hover:border-line hover:bg-white/[0.03]"
+                  >
+                    <span className="figures flex-1 text-sm">{fmtDate(r.started_at, true)}</span>
+                    <span className="figures text-xs text-muted">{r.read_minutes ? `${r.read_minutes} min read` : ""}</span>
+                    <StatusText status={r.status} />
                   </Link>
-                  <span className="text-xs text-muted">{r.read_minutes ? `${r.read_minutes} min read` : ""}</span>
-                  <StatusText status={r.status} />
                 </li>
               ))}
             </ul>
@@ -117,7 +130,7 @@ export default async function Overview() {
         </section>
       </div>
 
-      <aside className="flex w-full flex-col gap-4 xl:w-[240px] xl:shrink-0" aria-label="Summary">
+      <aside className="flex w-full flex-col gap-4 xl:w-[264px] xl:shrink-0 xl:border-l xl:border-line xl:pl-6" aria-label="Summary">
         <ProfileCard />
         <CoverageDonut data={coverage.map((c) => ({ label: c.domain, value: c.scanned }))} />
         <ScoreBars data={scores.map((s) => ({ label: s.title, value: s.final_score }))} />

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmptySearchArt } from "@/components/icons";
 import { fmtDate, PageHeader, StatusText } from "@/components/ui";
 import { q } from "@/lib/db";
 
@@ -41,7 +42,8 @@ export default async function Archive({ searchParams }: { searchParams: Promise<
         )}
       </PageHeader>
       {rows.length === 0 ? (
-        <div className="card text-sm text-muted">
+        <div className="card flex flex-col items-center py-10 text-center text-sm text-muted">
+          <EmptySearchArt className="mb-4" />
           {term ? (
             `No brief has a paper matching "${term}".`
           ) : (
@@ -57,7 +59,7 @@ export default async function Archive({ searchParams }: { searchParams: Promise<
         <ul className="card divide-y divide-[var(--border)]">
           {rows.map((r) => (
             <li key={r.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 first:pt-0 last:pb-0">
-              <Link href={r.status === "ready" ? `/briefs/${r.id}` : `/runs/${r.id}`} className="min-w-40 flex-1 text-sm font-medium hover:underline">
+              <Link href={r.status === "ready" ? `/briefs/${r.id}` : `/runs/${r.id}`} className="figures min-w-40 flex-1 text-sm font-medium hover:underline">
                 Week of {fmtDate(r.started_at)}
               </Link>
               <span className="text-xs text-muted">

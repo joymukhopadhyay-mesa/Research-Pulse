@@ -14,7 +14,7 @@ export function ProfileCard() {
           <p className="text-xs text-muted">Senior consultant, technology advisory</p>
         </div>
       </div>
-      <ul className="mt-4 space-y-1 text-xs text-muted">
+      <ul className="mt-4 space-y-3 pb-1 text-xs leading-relaxed text-muted">
         <li>Q1. Which architectures should we bet on?</li>
         <li>Q2. Which use cases have real research backing?</li>
         <li>Q3. Which direction is the field moving?</li>
@@ -40,6 +40,7 @@ export function CoverageDonut({ data, title = "Coverage by domain" }: { data: Sl
     slices = [...head, { label: "Other", value: rest }];
   }
   const total = slices.reduce((n, s) => n + s.value, 0);
+  const largest = Math.max(1, ...slices.map((s) => s.value));
   const colour = (i: number, label: string) => (label === "Other" ? OTHER : SERIES[i]);
   const gap = slices.length > 1 ? 0.04 : 0;
   let a = 0;
@@ -73,14 +74,28 @@ export function CoverageDonut({ data, title = "Coverage by domain" }: { data: Sl
               scanned
             </text>
           </svg>
-          <ul className="mt-4 space-y-1.5">
+          <ul className="mt-4 space-y-1">
             {slices.map((s, i) => (
-              <li key={s.label} className="flex items-center gap-2 text-xs">
-                <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: colour(i, s.label) }} aria-hidden />
-                <span className="flex-1 truncate text-muted" title={s.label}>
+              <li key={s.label} className="relative flex items-center gap-2 overflow-hidden rounded-md px-2 py-1.5 text-xs">
+                {/* Bar length is relative to the largest domain; the percentage gives the share of all papers. */}
+                <span
+                  className="grow-x absolute inset-y-0 left-0 rounded-md"
+                  style={
+                    {
+                      width: `${(s.value / largest) * 100}%`,
+                      background: colour(i, s.label),
+                      opacity: 0.16,
+                      "--delay": `${i * 80}ms`,
+                    } as React.CSSProperties
+                  }
+                  aria-hidden
+                />
+                <span className="relative h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: colour(i, s.label) }} aria-hidden />
+                <span className="relative flex-1 truncate text-muted" title={s.label}>
                   {s.label}
                 </span>
-                <span className="tabular-nums text-text">{s.value}</span>
+                <span className="figures relative w-8 shrink-0 text-right text-text">{s.value}</span>
+                <span className="figures relative w-9 shrink-0 text-right text-muted">{Math.round((s.value / total) * 100)}%</span>
               </li>
             ))}
           </ul>
@@ -101,14 +116,17 @@ export function ScoreBars({ data }: { data: { label: string; value: number; href
         <ul className="mt-4 space-y-3">
           {data.map((d, i) => (
             <li key={i}>
-              <div className="flex items-baseline justify-between gap-2 text-xs">
-                <span className="truncate text-muted" title={d.label}>
+              <div className="flex items-baseline gap-3 text-xs">
+                <span className="min-w-0 flex-1 truncate text-muted" title={d.label}>
                   {d.label}
                 </span>
-                <span className="tabular-nums text-text">{d.value.toFixed(1)}</span>
+                <span className="figures w-8 shrink-0 text-right text-text">{d.value.toFixed(1)}</span>
               </div>
               <div className="mt-1 h-1.5 rounded-full bg-white/5" aria-hidden>
-                <div className="h-1.5 rounded-full bg-accent-2" style={{ width: `${Math.max(2, d.value * 10)}%` }} />
+                <div
+                  className="grow-x h-1.5 rounded-full bg-linear-to-r from-accent to-accent-2"
+                  style={{ width: `${Math.max(2, d.value * 10)}%`, "--delay": `${150 + i * 90}ms` } as React.CSSProperties}
+                />
               </div>
             </li>
           ))}

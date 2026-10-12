@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Topic } from "@/lib/types";
+import { EmptySearchArt } from "./icons";
 
 export function KeywordForm({ topics }: { topics: Topic[] }) {
   const router = useRouter();
@@ -13,13 +14,14 @@ export function KeywordForm({ topics }: { topics: Topic[] }) {
 
   if (!topics.length) {
     return (
-      <p className="mt-4 text-sm text-muted">
-        No active domains.{" "}
-        <Link href="/topics" className="text-text underline">
-          Add a domain on the Topics page
-        </Link>{" "}
-        to run your first brief.
-      </p>
+      <div className="mt-4 flex flex-col items-center rounded-xl border border-dashed border-line px-4 py-8 text-center">
+        <EmptySearchArt />
+        <p className="mt-4 text-sm font-medium">No domains to search yet</p>
+        <p className="mt-1 max-w-sm text-sm text-muted">Add the research areas you follow, with a few keywords each, and they will appear here every week.</p>
+        <Link href="/topics" className="btn btn-gradient mt-4">
+          Add a domain
+        </Link>
+      </div>
     );
   }
 

@@ -249,7 +249,7 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      <aside className="flex w-full flex-col gap-4 xl:w-[240px] xl:shrink-0" aria-label="Brief summary">
+      <aside className="flex w-full flex-col gap-4 xl:w-[264px] xl:shrink-0 xl:border-l xl:border-line xl:pl-6" aria-label="Brief summary">
         <section className="card" aria-label="Verdict key">
           <h2 className="text-sm font-medium">Verdicts</h2>
           <ul className="mt-3 space-y-2 text-sm">

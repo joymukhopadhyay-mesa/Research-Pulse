@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   IconChevron,
   IconClose,
@@ -46,30 +46,48 @@ function isActive(href: string, path: string) {
 }
 
 function NavGroup({ title, items, path, onNavigate }: { title: string; items: typeof MAIN; path: string; onNavigate: () => void }) {
+  // One soft pill slides to whichever link is hovered or focused; the active link keeps its own violet pill.
+  const list = useRef<HTMLUListElement>(null);
+  const [target, setTarget] = useState<number | null>(null);
+  const [pill, setPill] = useState({ top: 0, height: 0 });
+
+  useLayoutEffect(() => {
+    if (target === null || !list.current) return;
+    const li = list.current.children[target] as HTMLElement | undefined;
+    if (li) setPill({ top: li.offsetTop, height: li.offsetHeight });
+  }, [target]);
+
   return (
     <div className="mt-6">
       <p className="px-3 text-xs text-muted">{title}</p>
-      <ul className="mt-2 space-y-1">
-        {items.map(({ href, label, icon: Icon }) => {
-          const active = isActive(href, path);
-          return (
-            <li key={href}>
-              <Link
-                href={href}
-                onClick={onNavigate}
-                aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${
-                  active ? "bg-accent/20 text-text" : "text-muted hover:text-text"
-                }`}
-              >
-                <Icon className={active ? "text-accent-2" : ""} />
-                <span className="flex-1">{label}</span>
-                {active && <IconChevron className="text-accent-2" />}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      <div className="relative mt-2">
+        <span
+          aria-hidden
+          className="nav-pill pointer-events-none absolute inset-x-0 top-0 rounded-xl bg-white/[0.06]"
+          style={{ transform: `translateY(${pill.top}px)`, height: pill.height, opacity: target === null ? 0 : 1 }}
+        />
+        <ul ref={list} className="relative space-y-1" onMouseLeave={() => setTarget(null)} onBlur={() => setTarget(null)}>
+          {items.map(({ href, label, icon: Icon }, i) => {
+            const active = isActive(href, path);
+            return (
+              <li key={href} onMouseEnter={() => setTarget(i)} onFocus={() => setTarget(i)}>
+                <Link
+                  href={href}
+                  onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
+                  className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors duration-200 ${
+                    active ? "bg-accent/20 text-text" : "text-muted hover:text-text"
+                  }`}
+                >
+                  <Icon className={active ? "text-accent-2" : ""} />
+                  <span className="flex-1">{label}</span>
+                  {active && <IconChevron className="text-accent-2" />}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 }
@@ -121,7 +139,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       )}
 
       <div className="lg:pl-[220px]">
-        <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-4 sm:px-6">
+        <header className="glass sticky top-0 z-30 flex flex-wrap items-center gap-3 border-b border-line px-4 py-4 sm:px-6">
           <button aria-label="Open menu" className="btn p-2 lg:hidden" onClick={() => setOpen(true)}>
             <IconMenu />
           </button>

@@ -1,0 +1,14 @@
+import { rubricGuide } from "../src/lib/rubric.ts";
+const g = rubricGuide();
+console.log("questions", g.questions.map((q) => q.id).join(","), "| gate", g.gate.map((r) => `${r.id}:${r.title}`).join(", "));
+console.log("gate note:", g.gateNote);
+for (const d of g.dimensions) console.log(`${d.letter} ${d.name} x${d.weight} | ${d.question} | levels ${d.levels.map((l) => l.score + (l.bullets.length ? `(+${l.bullets.length})` : "")).join(",")}`);
+console.log("shift level 2:", JSON.stringify(g.dimensions[0]?.levels[2]));
+console.log("scoring", g.scoring.map((r) => `${r.id}:${r.title}`).join(", "));
+console.log("selection", g.selection.map((r) => `${r.id}:${r.title}`).join(", "));
+console.log("S3 body:", g.selection.find((r) => r.id === "S3")?.body);
+console.log("card intro:", g.cardIntro);
+console.log("fields:", g.cardFields.map((f) => `${f.name}=${f.text.slice(0, 40)}`).join(" | "));
+console.log("verdicts:", JSON.stringify(g.verdicts));
+console.log("news", g.news.map((r) => r.id).join(","), "| feedback", g.feedback.map((r) => r.id).join(","));
+console.log("example:", JSON.stringify(g.example));

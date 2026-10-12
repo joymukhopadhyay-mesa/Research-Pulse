@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { HowItWorks } from "@/components/HowItWorks";
+import { IconTags } from "@/components/icons";
 import { KeywordForm } from "@/components/KeywordForm";
 import { CoverageDonut, ProfileCard, ScoreBars } from "@/components/RightRail";
 import { fmtDate, PageHeader, StatCard, StatusText } from "@/components/ui";
 import { one, q } from "@/lib/db";
+import { rubricGuide, type RubricGuide } from "@/lib/rubric";
 import type { Topic } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +45,12 @@ export default async function Overview() {
     );
   }
   const { topics, runs, latest, coverage, scores } = data;
+  let guide: RubricGuide | null = null;
+  try {
+    guide = rubricGuide();
+  } catch {
+    // Without a readable rubric file the panel is hidden; Settings reports the error.
+  }
   const scanned = coverage.reduce((n, c) => n + c.scanned, 0);
   const featured = coverage.reduce((n, c) => n + c.selected, 0);
   const active = topics.filter((t) => t.active);
@@ -53,11 +62,17 @@ export default async function Overview() {
           title="Overview"
           sub={latest ? `Latest brief: ${fmtDate(latest.started_at, true)}` : "No briefs yet. Enter your keywords to run the first one."}
         >
-          {latest && (
-            <Link href={`/briefs/${latest.id}`} className="btn">
-              Open latest brief
+          <div className="flex flex-wrap gap-2">
+            {guide && <HowItWorks guide={guide} />}
+            <Link href="/topics" className="btn">
+              <IconTags /> Edit domains
             </Link>
-          )}
+            {latest && (
+              <Link href={`/briefs/${latest.id}`} className="btn">
+                Open latest brief
+              </Link>
+            )}
+          </div>
         </PageHeader>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
